@@ -118,8 +118,8 @@ pipeline {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sh """
                         apt install -y cppcheck cpplint
-                        cppcheck --enable=all --inconclusive --xml --xml-version=2 source/ include/ 2> cppcheck.xml
-                        cpplint --output=vs7 source/* include/* > cpplint.xml
+                        cppcheck --enable=all --inconclusive --xml --xml-version=2 -I vendor/FlockFlow/include -I include/ source/ include/ 2> cppcheck.xml
+                        cpplint --output=vs7 source/* include/* > cpplint.xml || true
                     """
                     recordIssues(
                         sourceCodeRetention: 'LAST_BUILD',
