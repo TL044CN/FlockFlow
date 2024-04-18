@@ -60,7 +60,8 @@ if(NOT ${PROJECT_NAME}_IS_SUBMODULE)
 
 
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-      add_custom_target(coverage
+        message("Test executable: ${CMAKE_BINARY_DIR}/${PROJECT_NAME}_tests")
+        add_custom_target(coverage
         COMMAND ${CMAKE_MAKE_PROGRAM} test
         COMMAND ${GCOV} -r -pb tests/CMakeFiles/${PROJECT_NAME}_tests.dir/*.gcno CMakeFiles/${PROJECT_NAME}.dir/source/*.gcno
         COMMAND ${LCOV} --capture --directory . --output-file coverage.info
