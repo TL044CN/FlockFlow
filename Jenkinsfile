@@ -121,6 +121,7 @@ pipeline {
                         cppcheck --enable=all --inconclusive --xml --xml-version=2 -I vendor/FlockFlow/include -I include/ source/* include/* 2> cppcheck.xml
                         cpplint --output=vs7 source/* include/* > cpplint.xml || true
                     """
+
                     recordIssues(
                         sourceCodeRetention: 'LAST_BUILD',
                         tools: [
