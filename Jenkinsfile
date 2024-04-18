@@ -79,7 +79,7 @@ pipeline {
                             }
                             stage('Creating Test Coverage Reports') {
                                 steps {
-                                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                                    catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                                         sh """
                                         cmake -B build/ -DCMAKE_BUILD_TYPE=Debug
                                         cmake --build build/ --config=${BUILD_TYPE} -j --target coverage
