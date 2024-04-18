@@ -117,16 +117,32 @@ pipeline {
             steps {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sh """
-                        apt install -y cppcheck cpplint
+                        apt install -y cppcheck cpplint python3-venv
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        pip install lizard
                         cppcheck --enable=all --inconclusive --xml --xml-version=2 -I vendor/FlockFlow/include -I include/ source/* include/* 2> cppcheck.xml
-                        cpplint --output=vs7 source/* include/* > cpplint.xml || true
+                        cpplint source/* include/* 2> cpplint.txt || true
+                        lizard source/* include/* > lizard.out
+                    """
+
+                    sh """
+python3 -c "
+with open('lizard.out', 'r') as infile, open('lizard-gcc.out', 'w') as outfile:
+    for line in infile:
+        parts = line.split()
+        if len(parts) >= 5:
+            outfile.write(f'{parts[0]}:{parts[1]}: cyclomatic complexity={parts[3]}, NLOC={parts[2]}\\n')
+"
+                        cat lizard-gcc.out
                     """
 
                     recordIssues(
                         sourceCodeRetention: 'LAST_BUILD',
                         tools: [
                             cppCheck(pattern: 'cppcheck.xml'),
-                            cppLint(pattern: 'cpplint.xml')
+                            cppLint(pattern: 'cpplint.txt'),
+                            gcc(id: 'lizard', pattern: 'lizard-gcc.out')
                         ]
                     )
                 }
