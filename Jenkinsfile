@@ -82,7 +82,7 @@ pipeline {
                                     catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                         sh """
                                         . venv/bin/activate
-                                        cppcheck --enable=all --inconclusive --xml --xml-version=2 -i buiild/CMakeFiles -ibuild/_deps -ibuild/vendor build/ 2> cppcheck.xml
+                                        cppcheck --enable=all --inconclusive --xml --xml-version=2 -ibuild/CMakeFiles -ibuild/_deps -ibuild/vendor build/ 2> cppcheck.xml
                                         cpplint --output=vs7 source/ include/ > cpplint.xml
                                         """
                                     }
