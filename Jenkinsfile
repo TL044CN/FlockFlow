@@ -61,7 +61,7 @@ pipeline {
                                             sh 'apt install -y llvm'
                                         }
                                         sh '''
-                                            apt install -y lcov doxygen python3-venv cppcheck cpplint
+                                            apt install -y lcov doxygen python3-venv
                                             python3 -m venv venv
                                             . venv/bin/activate
                                             pip install lcov_cobertura
@@ -77,18 +77,7 @@ pipeline {
                                     """
                                 }
                             }
-                            stage('Calculate Code Metrics') {
-                                steps {
-                                    catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                                        sh """
-                                        . venv/bin/activate
-                                        cppcheck --enable=all --inconclusive --xml --xml-version=2 -ibuild/CMakeFiles -ibuild/_deps -ibuild/vendor build/ 2> cppcheck.xml
-                                        cpplint --output=vs7 source/ include/ > cpplint.xml
-                                        """
-                                    }
-                                }
-                            }
-                            stage('Creating Metric Report') {
+                            stage('Creating Test Coverage Reports') {
                                 steps {
                                     catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                                         sh """
@@ -99,14 +88,6 @@ pipeline {
                                         # Convert lcov report to cobertura format
                                         lcov_cobertura build/coverage.lcov -o coverage.xml
                                         """
-
-                                        recordIssues(
-                                            sourceCodeRetention: 'LAST_BUILD',
-                                            tools: [
-                                                cppCheck(id: "cppcheck_${PLATFORM}_${COMPILER}_${BUILD_TYPE}" ,pattern: 'cppcheck.xml'),
-                                                cppLint(id: "cpplint_${PLATFORM}_${COMPILER}_${BUILD_TYPE}",pattern: 'cpplint.xml')
-                                            ]
-                                        )
 
                                         recordCoverage(
                                             qualityGates: [
@@ -126,6 +107,27 @@ pipeline {
                             }
                         }
                     }
+                }
+            }
+        }
+        stage('Static Analysis') {
+            agent {
+                label 'generic'
+            }
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh """
+                        apt install -y cppcheck cpplint
+                        cppcheck --enable=all --inconclusive --xml --xml-version=2 source/ include/ 2> cppcheck.xml
+                        cpplint --output=vs7 source/* include/* > cpplint.xml
+                    """
+                    recordIssues(
+                        sourceCodeRetention: 'LAST_BUILD',
+                        tools: [
+                            cppCheck(pattern: 'cppcheck.xml'),
+                            cppLint(pattern: 'cpplint.xml')
+                        ]
+                    )
                 }
             }
         }
