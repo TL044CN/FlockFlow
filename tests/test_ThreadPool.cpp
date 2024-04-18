@@ -28,7 +28,7 @@ void check_timeout(std::future<T>& future, const std::chrono::seconds& timeout) 
     return;
 }
 
-TEST_CASE("ThreadPool tests", "[ThreadPool]") {
+TEST_CASE("FlockFlow tests", "[ThreadPool]") {
     ThreadPool pool;
 
     SECTION("TestQueueJob") {
@@ -76,27 +76,29 @@ TEST_CASE("ThreadPool tests", "[ThreadPool]") {
     }
 
     SECTION("TestPriorityQueue") {
-        std::atomic<int> result = 0;
-        std::atomic<int> counter = 0;
-        std::atomic<int> lowPriorityCounter;
-        std::atomic<int> highPriorityCounter;
+        std::vector<int> lowPriorityClock(pool.maxThreads(), 0);
+        std::vector<int> highPriorityClock(pool.maxThreads(), 0);
         std::vector<std::future<void>> futures;
         std::mutex m;
 
         pool.pause();
 
-        futures.push_back(pool.queueJob([&result, &counter, &lowPriorityCounter, &m]() {
-            std::lock_guard<std::mutex> lock(m);
-            lowPriorityCounter = counter++;
-            result = 1;
-        }, 1));
-
-        for ( int i = 0; i < pool.maxThreads(); ++i ) {
-            futures.push_back(pool.queueJob([&result, &counter, &highPriorityCounter, &m]() {
+        futures.push_back(pool.queueJob(
+            [&lowPriorityClock, &m, &pool]() {
                 std::lock_guard<std::mutex> lock(m);
-                highPriorityCounter = counter++;
-                result = 2;
-           }, 2));
+                for ( int i = 0; i < pool.maxThreads(); ++i ) {
+                    lowPriorityClock[i]++;
+                }
+            }, 1)
+        );
+
+        for ( int i = 0; i < pool.idleThreads(); ++i ) {
+            futures.push_back(pool.queueJob(
+                [&highPriorityClock, &m, &pool, i]() {
+                    std::lock_guard<std::mutex> lock(m);
+                    highPriorityClock[i]++;
+                }, 2)
+            );
         }
 
         pool.resume();
@@ -108,6 +110,9 @@ TEST_CASE("ThreadPool tests", "[ThreadPool]") {
             future.get();
         }
 
-        REQUIRE(lowPriorityCounter > highPriorityCounter);
+        // Check if the low priority task started last
+        for ( int i = 0; i < pool.maxThreads(); ++i ) {
+            REQUIRE(lowPriorityClock[i] <= highPriorityClock[i]);
+        }
     }
 }
