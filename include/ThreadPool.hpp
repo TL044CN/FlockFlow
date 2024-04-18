@@ -74,7 +74,7 @@ public:
      *
      * @param threadpoolSize number of Threads, defaults to the number of Hardware threads
      */
-    ThreadPool(const uint32_t threadpoolSize = std::thread::hardware_concurrency());
+    explicit ThreadPool(const uint32_t threadpoolSize = std::thread::hardware_concurrency());
 
     /**
      * @brief Cleans up the Threads of the Threadpool
