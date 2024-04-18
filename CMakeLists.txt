@@ -11,6 +11,14 @@ project(FlockFlow
 find_program(LCOV lcov)
 find_program(GENHTML genhtml)
 
+#check if project is a submodule
+if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${CMAKE_SOURCE_DIR})
+    set(${PROJECT_NAME}_IS_SUBMODULE OFF)
+else()
+    set(${PROJECT_NAME}_IS_SUBMODULE ON)
+endif()
+
+#find correct coverage system
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     find_program(GCOV gcov)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -27,16 +35,18 @@ endif()
 #    message("sccache not found. No caching.")
 #endif()
 
-find_package(Doxygen)
-if(DOXYGEN_FOUND)
-    add_custom_target(documentation
-        COMMAND "doxygen"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
-        COMMENT "Generating Doxygen Documentation"
-        VERBARIM
-    )
-else()
-    message("Doxygen required to build Doxygen Documentation")
+if(NOT ${PROJECT_NAME}_IS_SUBMODULE)
+    find_package(Doxygen)
+    if(DOXYGEN_FOUND)
+        add_custom_target(documentation
+            COMMAND "doxygen"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}"
+            COMMENT "Generating Doxygen Documentation"
+            VERBARIM
+        )
+    else()
+        message("Doxygen required to build Doxygen Documentation")
+    endif()
 endif()
 
 find_package(Git QUIET)
@@ -58,21 +68,24 @@ endif()
 add_library(${PROJECT_NAME} source/ThreadPool.cpp)
 target_include_directories(${PROJECT_NAME} PUBLIC include)
 
-if(GCOV AND LCOV AND GENHTML)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        target_compile_options(${PROJECT_NAME} PRIVATE -fprofile-arcs -ftest-coverage)
-    elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        target_compile_options(${PROJECT_NAME} PRIVATE -fprofile-instr-generate -fcoverage-mapping)
-    endif()
-else()
-    if(NOT GCOV)
-        message("gcov not found. No coverage report will be generated.")
-    endif()
-    if(NOT LCOV)
-        message("lcov not found. No coverage report will be generated.")
-    endif()
-    if(NOT GENHTML)
-        message("genhtml not found. No coverage report will be generated.")
+#prepare for coverage report
+if(NOT ${PROJECT_NAME}_IS_SUBMODULE)
+    if(GCOV AND LCOV AND GENHTML)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            target_compile_options(${PROJECT_NAME} PRIVATE -fprofile-arcs -ftest-coverage)
+        elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+            target_compile_options(${PROJECT_NAME} PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+        endif()
+    else()
+        if(NOT GCOV)
+            message("gcov not found. No coverage report will be generated.")
+        endif()
+        if(NOT LCOV)
+            message("lcov not found. No coverage report will be generated.")
+        endif()
+        if(NOT GENHTML)
+            message("genhtml not found. No coverage report will be generated.")
+        endif()
     endif()
 endif()
 
