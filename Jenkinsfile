@@ -69,12 +69,14 @@ pipeline {
                                         if(COMPILER == 'clang') {
                                             sh 'apt install -y llvm'
                                         }
-                                        sh """
-                                            apt install -y lcov doxygen python3-venv
-                                            python3 -m venv venv
+                                        sh "apt install -y lcov doxygen"
+                                        sh "apt install -y python3-venv"
+                                        sh """python3 -m venv venv
                                             . venv/bin/activate
                                             pip install lcov_cobertura
-
+                                        """
+                                        sh "apt install -y unzip"
+                                        sh """
                                             mkdir -p .sonar
                                             curl -sSLo .sonar/build-wrapper-linux-x86.zip ${SONARQUBE_URL}/static/cpp/build-wrapper-linux-x86.zip
                                             unzip -o .sonar/build-wrapper-linux-x86.zip -d .sonar/
