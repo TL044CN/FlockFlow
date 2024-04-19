@@ -13,7 +13,7 @@ pipeline {
     stages {
         stage('initialize submodules') {
             agent {
-                label 'generic'
+                label 'generic&&linux'
             }
             steps {
                 script {
@@ -75,12 +75,6 @@ pipeline {
                                             . venv/bin/activate
                                             pip install lcov_cobertura
                                         """
-                                        sh "apt install -y unzip"
-                                        sh """
-                                            mkdir -p .sonar
-                                            curl -sSLo .sonar/build-wrapper-linux-x86.zip ${SONARQUBE_URL}/static/cpp/build-wrapper-linux-x86.zip
-                                            unzip -o .sonar/build-wrapper-linux-x86.zip -d .sonar/
-                                        """
                                     }
                                 }
                             }
@@ -88,7 +82,7 @@ pipeline {
                                 steps {
                                     sh """
                                     cmake -B build/ -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-                                    .sonar/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir .sonar/bw-output cmake --build build/ --config=${BUILD_TYPE} -j
+                                    cmake --build build/ --config=${BUILD_TYPE} -j
                                     """
                                 }
                             }
@@ -117,7 +111,7 @@ pipeline {
                             stage('SonarQube Analysis'){
                                 steps {
                                     script {
-                                        def scannerHome = tool 'SonarScanner';
+                                        def scannerHome = tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation';
                                         withSonarQubeEnv() {
                                             sh """
                                             ${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY} -Dsonar.projectName=${SONARQUBE_PROJECT_NAME} -Dsonar.projectVersion=${SONARQUBE_PROJECT_VERSION} -Dsonar.sources=${SONARQUBE_SOURCES}
