@@ -14,13 +14,6 @@ pipeline {
     }
 
     stages {
-        stage('initialize submodules') {
-            steps {
-                script {
-                    sh 'git submodule update --init --recursive'
-                }
-            }
-        }
         stage('Retrieving Artifacts') {
             steps {
                 script{
@@ -37,6 +30,13 @@ pipeline {
                     } catch (Exception e) {
 
                     }
+                }
+            }
+        }
+        stage('initialize submodules') {
+            steps {
+                script {
+                    sh 'git submodule update --init --recursive'
                 }
             }
         }
@@ -90,30 +90,6 @@ pipeline {
                 archiveArtifacts (artifacts: "build-${PLATFORM}-${COMPILER}/", allowEmptyArchive: true, onlyIfSuccessful: true, fingerprint: true)
             }
         }
-        stage('Static Analysis') {
-            agent {
-                label 'generic'
-            }
-            steps {
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    sh """
-                        apt install -y cppcheck python3-venv
-                        python3 -m venv venv
-                        . venv/bin/activate
-                        pip install lizard
-                        cppcheck --enable=all --inconclusive --xml --xml-version=2 -I -I include/ source/* include/* 2> cppcheck.xml
-                        lizard -X "source/*" "include/*" > lizard.xml
-                    """
-
-                    recordIssues(
-                        sourceCodeRetention: 'LAST_BUILD',
-                        tools: [
-                            cppCheck(pattern: 'cppcheck.xml'),
-                        ]
-                    )
-                }
-            }
-        }
         stage('SonarQube Analysis'){
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
@@ -125,6 +101,27 @@ pipeline {
                             """
                         }
                     }
+                }
+            }
+        }
+        stage('Static Analysis') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh """
+                        apt install -y cppcheck python3-venv
+                        python3 -m venv venv
+                        . venv/bin/activate
+                        pip install lizard
+                        cppcheck --enable=all --inconclusive --xml --xml-version=2 -I include/ source/* include/* 2> cppcheck.xml
+                        lizard -X "source/*" "include/*" > lizard.xml
+                    """
+
+                    recordIssues(
+                        sourceCodeRetention: 'LAST_BUILD',
+                        tools: [
+                            cppCheck(pattern: 'cppcheck.xml'),
+                        ]
+                    )
                 }
             }
         }
