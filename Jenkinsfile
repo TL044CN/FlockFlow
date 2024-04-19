@@ -4,11 +4,6 @@ pipeline {
 
     environment {
         SONARQUBE_URL = 'https://sonarqube.shodan.fyi'
-        SONARQUBE_PROJECT_KEY = 'TL044CN_FlockFlow_b62b61ec-2ac1-4666-9f79-939098b9584f'
-        SONARQUBE_PROJECT_NAME = 'FlockFlow'
-        SONARQUBE_PROJECT_VERSION = '1.0'
-        SONARQUBE_SOURCES = '"source, include"'
-        SONARQUBE_INCLUDE_DIRECTORIES = '"include, vendor/FlockFlow/include"'
     }
 
     stages {
@@ -115,7 +110,7 @@ pipeline {
                                             def scannerHome = tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation';
                                             withSonarQubeEnv() {
                                                 sh """
-                                                ${scannerHome}/bin/sonar-scanner -X -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY} -Dsonar.projectName=${SONARQUBE_PROJECT_NAME} -Dsonar.projectVersion=${SONARQUBE_PROJECT_VERSION} -Dsonar.sources=${SONARQUBE_SOURCES} -Dsonar.cxx.includeDirectories=${SONARQUBE_INCLUDE_DIRECTORIES} -Dsonar.language=cxx
+                                                ${scannerHome}/bin/sonar-scanner -X
                                                 """
                                             }
                                         }
