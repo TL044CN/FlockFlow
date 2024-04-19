@@ -27,11 +27,11 @@ namespace FlockFlow {
 class ThreadPool {
     template<typename Func>
 #if __cpp_lib_is_invocable
-    using resultType = std::invoke_result<Func&&>::type;
+    using resultType = std::invoke_result_t<Func&&>;
 #else
-    using resultType = std::result_of<Func&&>::type;
+    using resultType = std::result_of_t<Func&&>;
 #endif
-private:
+// Internal Structs and Types
     /**
      * @brief Task in the priority_queue
      */
@@ -57,8 +57,8 @@ private:
         [[nodiscard]] std::strong_ordering operator <=> (const Task& other) const;
     };
 
-private:
-    std::vector<std::thread> mThreads;
+// Data Members
+    std::vector<std::jthread> mThreads;
     std::priority_queue<Task, std::vector<Task>, std::less<Task>> mTasks;
 
     std::mutex mQueueMutex;
@@ -69,19 +69,20 @@ private:
     std::atomic_flag mPause;
 
 public:
+// Constructors and Destructors
     /**
      * @brief Create and start new Thread Pool with the given amount of Threads
      *
      * @param threadpoolSize number of Threads, defaults to the number of Hardware threads
      */
-    explicit ThreadPool(const uint32_t threadpoolSize = std::thread::hardware_concurrency());
+    explicit ThreadPool(const uint32_t threadpoolSize = std::jthread::hardware_concurrency());
 
     /**
      * @brief Cleans up the Threads of the Threadpool
      */
     ~ThreadPool();
 
-public:
+// Member Functions
     /**
      * @brief                       Add a new Task to the Thread Pool
      *
@@ -99,9 +100,10 @@ public:
     [[nodiscard]] std::future<Ret> queueJob(Func&& function, uint32_t priority = 0) {
         auto task = std::packaged_task<Ret()>(std::forward<Func>(function));
         auto future = task.get_future();
+        
         {
-            std::lock_guard<std::mutex> lock(mQueueMutex);
-            mTasks.emplace(Task(Task::Package(std::move(task)), priority));
+            std::lock_guard lock(mQueueMutex);
+            mTasks.emplace(Task::Package(std::move(task)), priority);
         }
 
         mThreadPoolConditional.notify_one();
