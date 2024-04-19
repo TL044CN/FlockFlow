@@ -84,26 +84,6 @@ pipeline {
                 }
             }
         }
-        stage('Archiving Artifacts') {
-            steps {
-                sh 'mv build "build-${PLATFORM}-${COMPILER}"'
-                archiveArtifacts (artifacts: "build-${PLATFORM}-${COMPILER}/", allowEmptyArchive: true, onlyIfSuccessful: true, fingerprint: true)
-            }
-        }
-        stage('SonarQube Analysis'){
-            steps {
-                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-                    script {
-                        def scannerHome = tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation';
-                        withSonarQubeEnv() {
-                            sh """
-                            ${scannerHome}/bin/sonar-scanner -X
-                            """
-                        }
-                    }
-                }
-            }
-        }
         stage('Static Analysis') {
             steps {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
@@ -123,6 +103,26 @@ pipeline {
                         ]
                     )
                 }
+            }
+        }
+        stage('SonarQube Analysis'){
+            steps {
+                catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+                    script {
+                        def scannerHome = tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation';
+                        withSonarQubeEnv() {
+                            sh """
+                            ${scannerHome}/bin/sonar-scanner -X
+                            """
+                        }
+                    }
+                }
+            }
+        }
+        stage('Archiving Artifacts') {
+            steps {
+                sh 'mv build "build-${PLATFORM}-${COMPILER}"'
+                archiveArtifacts (artifacts: "build-${PLATFORM}-${COMPILER}/", allowEmptyArchive: true, onlyIfSuccessful: true, fingerprint: true)
             }
         }
     }
