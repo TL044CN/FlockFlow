@@ -1,6 +1,15 @@
 
 pipeline {
     agent none
+
+    environment {
+        SONARQUBE_URL = 'https://sonarqube.shodan.fyi'
+        SONARQUBE_PROJECT_KEY = 'TL044CN_FlockFlow_b62b61ec-2ac1-4666-9f79-939098b9584f'
+        SONARQUBE_PROJECT_NAME = 'FlockFlow'
+        SONARQUBE_PROJECT_VERSION = '1.0'
+        SONARQUBE_SOURCES = 'source'
+    }
+
     stages {
         stage('initialize submodules') {
             agent {
@@ -60,12 +69,16 @@ pipeline {
                                         if(COMPILER == 'clang') {
                                             sh 'apt install -y llvm'
                                         }
-                                        sh '''
+                                        sh """
                                             apt install -y lcov doxygen python3-venv
                                             python3 -m venv venv
                                             . venv/bin/activate
                                             pip install lcov_cobertura
-                                        '''
+
+                                            mkdir -p .sonar
+                                            curl -sSLo .sonar/build-wrapper-linux-x86.zip ${SONARQUBE_URL}/static/cpp/build-wrapper-linux-x86.zip
+                                            unzip -o .sonar/build-wrapper-linux-x86.zip -d .sonar/
+                                        """
                                     }
                                 }
                             }
@@ -73,7 +86,7 @@ pipeline {
                                 steps {
                                     sh """
                                     cmake -B build/ -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-                                    cmake --build build/ --config=${BUILD_TYPE} -j
+                                    .sonar/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir .sonar/bw-output cmake --build build/ --config=${BUILD_TYPE} -j
                                     """
                                 }
                             }
@@ -96,6 +109,18 @@ pipeline {
                                                 [criticality: 'NOTE', integerThreshold: 60, metric: 'METHOD', threshold: 60.0]
                                             ],
                                             tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
+                                    }
+                                }
+                            }
+                            stage('SonarQube Analysis'){
+                                steps {
+                                    script {
+                                        def scannerHome = tool 'SonarScanner';
+                                        withSonarQubeEnv() {
+                                            sh """
+                                            ${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY} -Dsonar.projectName=${SONARQUBE_PROJECT_NAME} -Dsonar.projectVersion=${SONARQUBE_PROJECT_VERSION} -Dsonar.sources=${SONARQUBE_SOURCES}
+                                            """
+                                        }
                                     }
                                 }
                             }
