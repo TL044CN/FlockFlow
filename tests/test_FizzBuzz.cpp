@@ -10,17 +10,19 @@ TEST_CASE("ThreadPool FizzBuzz", "[FizzBuzz]") {
 
         // Queue tasks to solve the FizzBuzz problem
         for ( int i = 1; i <= 100; ++i ) {
-            futures.push_back(pool.queueJob([i]() -> std::string {
-                if ( i % 15 == 0 ) {
-                    return "FizzBuzz";
-                } else if ( i % 3 == 0 ) {
-                    return "Fizz";
-                } else if ( i % 5 == 0 ) {
-                    return "Buzz";
-                } else {
-                    return std::to_string(i);
+            futures.push_back(pool.queueJob(
+                [i]() -> std::string {
+                    if ( i % 15 == 0 ) {
+                        return "FizzBuzz";
+                    } else if ( i % 3 == 0 ) {
+                        return "Fizz";
+                    } else if ( i % 5 == 0 ) {
+                        return "Buzz";
+                    } else {
+                        return std::to_string(i);
+                    }
                 }
-                                            }));
+            ));
         }
 
         // Check if the results are correct
